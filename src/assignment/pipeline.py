@@ -108,11 +108,29 @@ async def run_assignment_suite(pipeline) -> dict:
         max_requests=rate.max_requests, window_seconds=rate.window_seconds))
     edges = await run_group(edge_inputs, build_production_plugins(
         max_requests=rate.max_requests, window_seconds=rate.window_seconds))
-    rate_plugins = build_production_plugins(max_requests=rate.max_requests,
-                                            window_seconds=rate.window_seconds)
+    # Exercise the first pipeline stage directly for the flood test. Passing
+    # requests do not need an LLM response to establish the rate decision.
+    from types import SimpleNamespace
+    from google.genai import types
+    rate_plugin = RateLimitPlugin(max_requests=rate.max_requests,
+                                  window_seconds=rate.window_seconds)
     sent = rate.max_requests + 3
-    rate_rows = await run_group(["What is my account balance?"] * sent, rate_plugins)
-    blocked = sum(row["blocked"] for row in rate_rows)
+    blocked = 0
+    for _ in range(sent):
+        request_id = str(uuid4())
+        prompt = "What is my account balance?"
+        audit.record_input(user_id="rate-test", text=prompt, request_id=request_id)
+        content = types.Content(role="user", parts=[types.Part.from_text(text=prompt)])
+        decision = await rate_plugin.on_user_message_callback(
+            invocation_context=SimpleNamespace(user_id="rate-test"), user_message=content)
+        was_blocked = decision is not None
+        blocked += int(was_blocked)
+        monitor.total_requests += 1
+        monitor.blocked_requests += int(was_blocked)
+        monitor.rate_limit_hits += int(was_blocked)
+        audit.record_output(user_id="rate-test", text="Rate limit exceeded" if was_blocked else "Rate limiter allowed",
+                            blocked=was_blocked, layer="rate_limiter" if was_blocked else None,
+                            request_id=request_id)
     result = {
         "framework": "openrouter-blue-with-adk-plugins",
         "safe_queries": safe,
