@@ -134,3 +134,14 @@ pip install -r requirements.txt
 Rồi mở [`CHECKPOINTS.md`](CHECKPOINTS.md) và làm lần lượt Checkpoint 1 → 5.
 
 Nộp theo [`SUBMISSION.md`](SUBMISSION.md) · Quy định: [`RULES.md`](RULES.md).
+
+---
+
+## Bài làm cá nhân
+
+- Họ tên: Hoàng Trung Khải
+- MSSV: 2A202602947
+- Chạy từ gốc repo: `.venv/bin/python src/main.py --part 2`, sau đó `--part 3` và `--part 4`.
+- Điền `OPENROUTER_API_KEY` và một key Red vào `.env` theo `.env.example`; file `.env` đã được gitignore.
+- Kiểm tra: `.venv/bin/pytest tests/smoke tests/public -q` và `.venv/bin/python scripts/grade.py --submission-dir . --out outputs/grade_report.json`.
+- `outputs/*.json` chỉ được sinh từ các lệnh lab và grader; không chỉnh tay kết quả.
