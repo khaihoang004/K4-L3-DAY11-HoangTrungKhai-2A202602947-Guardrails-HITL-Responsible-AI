@@ -24,7 +24,7 @@ _SRC_DIR = Path(__file__).resolve().parent
 if str(_SRC_DIR) not in sys.path:
     sys.path.insert(0, str(_SRC_DIR))
 
-from core.config import setup_api_key
+from core.config import get_openrouter_api_key, get_red_provider, get_openai_api_key
 
 
 async def part2_guardrails():
@@ -134,10 +134,18 @@ async def part4_attacks():
 
 
 async def main(parts=None):
-    setup_api_key()
-
     if parts is None:
         parts = [2, 3, 4]  # Core: CP2 → CP3 → CP4
+
+    if 3 in parts and not get_openrouter_api_key():
+        raise RuntimeError("Checkpoint 3 requires OPENROUTER_API_KEY in .env")
+    if 4 in parts:
+        if get_red_provider() == "openai" and not get_openai_api_key():
+            raise RuntimeError("Checkpoint 4 requires OPENAI_API_KEY in .env")
+        if get_red_provider() == "gemini":
+            import os
+            if not os.environ.get("GOOGLE_API_KEY", "").strip():
+                raise RuntimeError("Checkpoint 4 requires GOOGLE_API_KEY in .env")
 
     for part in parts:
         if part == 2:
